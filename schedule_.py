@@ -1,4 +1,5 @@
 import streamlit as st
+import re
 
 # Import workout modules
 from lunges import run_lunges
