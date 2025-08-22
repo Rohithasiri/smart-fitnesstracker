@@ -6,6 +6,7 @@ import re
 from lunges import run_lunges
 from pushups import run_pushups
 from squats import run_squats
+from Crunches import run_crunches
 from sidelyinglegraises import run_sidelying_leg_raises as run_side_lying_leg_raises
 from plank import run_plank
 from yoga_pose_classifier import run_yoga_pose
@@ -47,6 +48,7 @@ EXERCISE_MAP = {
     "Squats": ("reps", run_squats),
     "Pushups": ("reps", run_pushups),
     "Lunges": ("reps", run_lunges),
+    "Crunches": ("reps", run_crunches),
     "Side-lying leg raises": ("reps", run_side_lying_leg_raises),
     "Plank": ("time_seconds", run_plank),
     # Yoga poses: mark as time_seconds_pose and call run_yoga_pose directly
@@ -137,54 +139,11 @@ def ensure_session_state():
 
 ensure_session_state()
 
-# -------------------- PAGES --------------------
-
-# # WELCOME
-# if st.session_state.page == "welcome":
-#     st.title("🏋️ Welcome to GetUpGo! the Smart Fitness Tracker!")
-#     st.write("Track exercises and posture using vision-based pose detection!")
-
-#     # camera_indices = [0, 1, 2, 3]
-#     # selected_camera = st.selectbox(
-#     #     "Select a webcam source:",
-#     #     camera_indices,
-#     #     index=camera_indices.index(st.session_state.video_path) if st.session_state.video_path in camera_indices else 0
-#     # )
-#     st.session_state.video_path = 3
-
-#     # Center the two main buttons
-#     col_spacer1, col1, col2, col_spacer2 = st.columns([2, 3, 3, 2])
-#     with col1:
-#         if st.button("🔹 Manual Workout", use_container_width=True):
-#             st.session_state.mode = "Manual Workout"
-#             go_to("select")
-#     with col2:
-#         if st.button("📅 Schedule Mode", use_container_width=True):
-#             st.session_state.mode = "Schedule Mode"
-#             go_to("schedule_select")
-
-#     # Make the buttons much larger
-#     st.markdown("""
-#         <style>
-#         div.stButton > button {
-#             height: 80px !important;
-#             font-size: 22px !important;
-#             font-weight: bold !important;
-#         }
-#         </style>
-#     """, unsafe_allow_html=True)
-
-#     # Quick History button in bottom-left
-#     st.markdown("<br><br><br>", unsafe_allow_html=True)
-#     left_col, _ = st.columns([1, 4])
-#     with left_col:
-#         if st.button("📜 Quick History", use_container_width=False):
-#             go_to("result_history")
 # WELCOME
 if st.session_state.page == "welcome":
     st.title("Welcome to GetUpGo! the Smart Fitness Tracker!")
     st.write("Track exercises and posture using vision-based pose detection!")
-    st.session_state.video_path = 3
+    st.session_state.video_path = 0
 
     # Center the three buttons
     col_spacer1, col1, col2, col3, col_spacer2 = st.columns([2, 3, 3, 3, 2])
@@ -223,19 +182,24 @@ if st.session_state.page == "welcome":
 elif st.session_state.page == "orbit_game_page":
     st.title("🎮 Orbit Fitness Game")
     st.write("Use gestures to control the game. Burn calories while having fun!")
+    import subprocess
+    import sys
+    import os
 
-    if st.button("▶️ Run Orbit Game", use_container_width=True):
-        run_orbit_game()  # The function we wrapped your game in earlier
+    # Button to launch the game in a separate process
+    if st.button("▶️ Play Orbit Game"):
+        game_file = os.path.join(os.getcwd(), "ninjastar.py")  # Make sure this path is correct
+        subprocess.Popen([sys.executable, game_file])
+        st.info("Orbit game launched in a new window!")
 
-    if st.button("⬅️ Back to Home", use_container_width=True):
+    if st.button("⬅️ Back to Home"):
         go_to("welcome")
-
 
 
 # MANUAL SELECT
 elif st.session_state.page == "select":
     st.title("Select Your Workout (Manual Mode)")
-    option = st.selectbox("Choose an exercise", ["Lunges", "Pushups", "Squats", "Side-Lying Leg Raises", "Plank", "Yoga"])
+    option = st.selectbox("Choose an exercise", ["Lunges", "Pushups", "Squats","Crunches", "Side-Lying Leg Raises", "Plank", "Yoga"])
     st.session_state.exercise = option
     st.session_state.weight = st.number_input("Enter your weight (kg)", min_value=30, max_value=150, value=st.session_state.weight)
 
@@ -325,7 +289,7 @@ elif st.session_state.page == "run_schedule":
             go_to("welcome")
     else:
         # pop the next item and prepare the announcement
-        next_item = st.session_state.schedule_queue.pop(0)
+        next_item = queue[0]
         st.session_state.current_schedule_item = next_item
         ex_name, target_text = get_exercise_name_and_target(next_item)
         ex_key = normalize_pose_name(ex_name)
@@ -356,13 +320,18 @@ elif st.session_state.page == "scheduled_announce":
     col1, col2 = st.columns(2)
     with col1:
         if st.button("Start Exercise"):
+             # Remove current item from queue now
+            q = st.session_state.get("schedule_queue") or []
+            if q and q[0] == st.session_state.current_schedule_item:
+              q.pop(0)  # remove the current item
+              st.session_state.schedule_queue = q
             # move to actual runner which will call the corresponding function
             go_to("workout_scheduled_run")
     with col2:
         if st.button("Cancel / Back to Schedule"):
-            # push the current item back to the front of the queue (so it isn't lost)
-            q = st.session_state.get("schedule_queue") or []
-            st.session_state.schedule_queue = [st.session_state.current_schedule_item] + q
+            # # push the current item back to the front of the queue (so it isn't lost)
+            # q = st.session_state.get("schedule_queue") or []
+            # st.session_state.schedule_queue = [st.session_state.current_schedule_item] + q
             go_to("run_schedule")
 
 # WORKOUT RUN (manual)
@@ -379,6 +348,8 @@ elif st.session_state.page == "workout":
             result = run_pushups(user_weight=st.session_state.weight, video_path=st.session_state.video_path, target_reps=st.session_state.target_reps)
         elif ex == "Squats":
             result = run_squats(user_weight=st.session_state.weight, video_path=st.session_state.video_path, target_reps=st.session_state.target_reps)
+        elif ex == "Crunches":
+            result = run_crunches(user_weight=st.session_state.weight, video_path=st.session_state.video_path, target_reps=st.session_state.target_reps)    
         elif ex == "Side-Lying Leg Raises":
             result = run_side_lying_leg_raises(user_weight=st.session_state.weight, video_path=st.session_state.video_path, target_reps=st.session_state.target_reps)
         elif ex == "Plank":
@@ -444,10 +415,19 @@ elif st.session_state.page == "workout_scheduled_run":
             kwargs["target_seconds"] = val
             result = func(**kwargs)
         elif call_type == "time_seconds_pose":
-            if val is None:
-                val = st.session_state.get("hold_time", 30)
+            if val is None:  # fallback if parsing failed
+              val = 30
             pose_name = found_key
-            result = run_yoga_pose(user_weight=st.session_state.weight, video_path=st.session_state.video_path, target_time=val, pose_name=pose_name)
+            result = run_yoga_pose(user_weight=st.session_state.weight,
+                           video_path=st.session_state.video_path,
+                           target_time=val,
+                           pose_name=pose_name)
+    
+        # elif call_type == "time_seconds_pose":
+        #     if val is None:
+        #         val = st.session_state.get("hold_time", 30)
+        #     pose_name = found_key
+        #     result = run_yoga_pose(user_weight=st.session_state.weight, video_path=st.session_state.video_path, target_time=val, pose_name=pose_name)
         else:
             result = func(user_weight=st.session_state.weight, video_path=st.session_state.video_path)
     except Exception as e:
@@ -561,11 +541,3 @@ elif st.session_state.page == "result_history":
 else:
     st.write("Unknown page. Returning to welcome.")
     go_to("welcome")
-
-
-
-
-
-
-
-
