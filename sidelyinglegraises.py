@@ -44,6 +44,18 @@ def run_sidelying_leg_raises(user_weight, target_reps=10, video_path=0):
         rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         results = pose.process(rgb_frame)
         frame = cv2.cvtColor(rgb_frame, cv2.COLOR_RGB2BGR)
+        if st.session_state.workout_status == "exit":
+           break
+
+        if st.session_state.workout_status == "paused":
+            if not st.session_state.pause_message_shown:
+             st.warning("⏸ Workout Paused. Press Resume to continue.")
+             st.session_state.pause_message_shown = True
+            time.sleep(1)
+            continue
+        else:
+          # Reset when resumed
+          st.session_state.pause_message_shown = False
 
         if results.pose_landmarks:
             lm = results.pose_landmarks.landmark
@@ -65,8 +77,8 @@ def run_sidelying_leg_raises(user_weight, target_reps=10, video_path=0):
 
             mp_drawing.draw_landmarks(frame, results.pose_landmarks, mp_pose.POSE_CONNECTIONS)
 
-            cv2.putText(frame, f'Angle: {int(angle)}°', (30, 60),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.9, (255, 255, 0), 2)
+            # cv2.putText(frame, f'Angle: {int(angle)}°', (30, 60),
+                        # cv2.FONT_HERSHEY_SIMPLEX, 0.9, (255, 255, 0), 2)
             cv2.putText(frame, f'Reps: {count}', (30, 100),
                         cv2.FONT_HERSHEY_SIMPLEX, 1.2, (0, 255, 255), 3)
 
