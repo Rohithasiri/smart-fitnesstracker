@@ -30,18 +30,19 @@ def check_plank_posture(landmarks):
 
     return 160 < angle < 180  # Ideal plank angle
 
-def run_plank(user_weight,target_time=30,video_path=0):
+def run_plank(user_weight, target_time=30, video_path=0):
     MET = 3.0
     visibility_threshold = 0.5
     sets = 0
     in_plank = False
     plank_start_time = None
     elapsed = 0.0
+    detected_once = False  # ✅ to check if posture was ever detected
 
     cap = cv2.VideoCapture(video_path)
     if not cap.isOpened():
         st.error("Error opening video source")
-        return {"exercise": "Plank", "duration_sec": 0, "sets": 0, "calories": 0, "status": "Fail"}
+        return {"exercise": "Plank", "duration_sec": 0, "sets": 0, "calories": 0, "status": "Not Detected"}
 
     pose = mp_pose.Pose(min_detection_confidence=0.5, min_tracking_confidence=0.5)
     frame_placeholder = st.empty()
@@ -59,9 +60,20 @@ def run_plank(user_weight,target_time=30,video_path=0):
         results = pose.process(img_rgb)
         frame = cv2.cvtColor(img_rgb, cv2.COLOR_RGB2BGR)
 
+        # ✅ Handle pause/resume/exit
+        if st.session_state.workout_status == "exit":
+            break
+        if st.session_state.workout_status == "paused":
+            if not st.session_state.pause_message_shown:
+                st.warning("⏸ Workout Paused. Press Resume to continue.")
+                st.session_state.pause_message_shown = True
+            time.sleep(1)
+            continue
+        else:
+            st.session_state.pause_message_shown = False
+
         if results.pose_landmarks:
             landmarks = results.pose_landmarks.landmark
-
             joints_visible = all(
                 landmarks[j.value].visibility > visibility_threshold
                 for j in CRITICAL_JOINTS
@@ -71,6 +83,7 @@ def run_plank(user_weight,target_time=30,video_path=0):
                 posture_ok = check_plank_posture(landmarks)
 
                 if posture_ok:
+                    detected_once = True  # ✅ posture detected at least once
                     if not in_plank:
                         plank_start_time = time.time()
                         in_plank = True
@@ -88,13 +101,9 @@ def run_plank(user_weight,target_time=30,video_path=0):
                     in_plank = False
                     plank_start_time = None
 
-            status_text = "HOLD" if in_plank else "NONE"
-            cv2.putText(frame, f"Status: {status_text}", (10, 30),
-                        cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0) if in_plank else (0, 0, 255), 2)
+            # Overlay info
             cv2.putText(frame, f"Time: {elapsed:.1f}s", (10, 70),
                         cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
-            cv2.putText(frame, f"Sets: {sets}", (10, 110),
-                        cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255),2)
             mp_drawing.draw_landmarks(frame, results.pose_landmarks, mp_pose.POSE_CONNECTIONS)
 
         frame_placeholder.image(frame, channels="BGR", caption="Plank Tracker")
@@ -103,8 +112,14 @@ def run_plank(user_weight,target_time=30,video_path=0):
 
     duration_hr = elapsed / 3600
     calories_burned = MET * user_weight * duration_hr
-    success = elapsed >= target_time
-    status = "Success" if success else "Fail"
+
+    # ✅ Better status logic
+    if not detected_once:
+        status = "Not Detected"
+    elif elapsed >= target_time:
+        status = "Success"
+    else:
+        status = "Incomplete"
 
     return {
         "exercise": "Plank",
