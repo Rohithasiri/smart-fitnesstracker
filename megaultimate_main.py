@@ -1,12 +1,17 @@
 import streamlit as st
 import datetime
 import re
+import subprocess
+import sys
+import os
+import platform
+
 
 # Import your existing workout modules (make sure these imports match your project)
 from lunges import run_lunges
 from pushups import run_pushups
 from squats import run_squats
-from Crunches import run_crunches
+from crunches import run_crunches
 from sidelyinglegraises import run_sidelying_leg_raises as run_side_lying_leg_raises
 from plank import run_plank
 from yoga_pose_classifier import run_yoga_pose
@@ -61,6 +66,36 @@ EXERCISE_MAP = {
 def go_to(page):
     st.session_state.page = page
     st.rerun()
+
+def launch_game_script(script_relpath):
+    """
+    Launch a Python script as a new process. script_relpath is relative to project root.
+    Returns the subprocess.Popen object or None.
+    """
+    script_path = os.path.join(os.getcwd(), script_relpath)
+    if not os.path.exists(script_path):
+        st.error(f"Game script not found: {script_path}")
+        return None
+
+    game_dir = os.path.dirname(script_path)
+    try:
+        if platform.system() == "Windows":
+            proc = subprocess.Popen([sys.executable, script_path],
+                                    cwd=game_dir,
+                                    creationflags=subprocess.CREATE_NEW_CONSOLE)
+        else:
+            proc = subprocess.Popen([sys.executable, script_path], cwd=game_dir)
+
+        st.session_state['game_proc'] = proc
+        return proc
+    except Exception as e:
+        st.error(f"Failed to launch game: {e}")
+        return None
+
+# Ensure session_state key exists
+if 'game_proc' not in st.session_state:
+    st.session_state['game_proc'] = None
+
 
 def parse_target_from_text(text):
     """
@@ -144,7 +179,6 @@ if st.session_state.page == "welcome":
     st.title("Welcome to GetUpGo! the Smart Fitness Tracker!")
     st.write("Track exercises and posture using vision-based pose detection!")
     st.session_state.video_path = 0
-
     # Center the three buttons
     col_spacer1, col1, col2, col3, col_spacer2 = st.columns([2, 3, 3, 3, 2])
     with col1:
@@ -156,8 +190,9 @@ if st.session_state.page == "welcome":
             st.session_state.mode = "Schedule Mode"
             go_to("schedule_select")
     with col3:
-        if st.button("🎮 Orbit Game", use_container_width=True):
-            go_to("orbit_game_page")
+        if st.button("🎮 Fitness Games", use_container_width=True):
+            go_to("fitness_games_page")
+
 
     # Make the buttons much larger
     st.markdown("""
@@ -178,22 +213,49 @@ if st.session_state.page == "welcome":
             go_to("result_history")
 
 
-#GAME PAGE
-elif st.session_state.page == "orbit_game_page":
-    st.title("🎮 Orbit Fitness Game")
-    st.write("Use gestures to control the game. Burn calories while having fun!")
-    import subprocess
-    import sys
-    import os
+# FITNESS GAMES PAGE
+elif st.session_state.page == "fitness_games_page":
+    st.title("🎮 Fitness Games")
+    st.write("Choose a game — each opens in its own window. Close the game window to return to Streamlit.")
+    st.info("Make sure no other app is using the webcam before starting a game (only one process can open the camera at a time).")
 
-    # Button to launch the game in a separate process
-    if st.button("▶️ Play Orbit Game"):
-        game_file = os.path.join(os.getcwd(), "ninjastar.py")  # Make sure this path is correct
-        subprocess.Popen([sys.executable, game_file])
-        st.info("Orbit game launched in a new window!")
+    col1, col2, col3 = st.columns([3, 3, 2])
+    with col1:
+        if st.button("🦕 Dinosaur(Dino) game"):
+            proc = launch_game_script("Dinosaur_and_flappybird_fitness_games/run_dino.py")
+            if proc:
+                st.success("Dinosaur launched (check new window).")
+    with col2:
+        if st.button("🐦Flappy Bird"):
+            proc = launch_game_script("Dinosaur_and_flappybird_fitness_games/run_flappy.py")
+            if proc:
+                st.success("Flappy Bird launched (check new window).")         
+    with col3:
+        if st.button("🔥Orbit game"):
+            proc = launch_game_script("ninjastar.py")
+            if proc:
+                st.success("Orbit game launched (check new window).")
+                
+    with col3:
+        if st.button("⬅️ Back"):
+            go_to("welcome")
 
-    if st.button("⬅️ Back to Home"):
-        go_to("welcome")
+    st.divider()
+    # Show running game info + Stop button
+    proc = st.session_state.get('game_proc')
+    if proc:
+        st.write(f"🔵 Game running, PID: {getattr(proc, 'pid', 'unknown')}")
+        if st.button("⛔ Stop running game"):
+            try:
+                proc.kill()
+                proc.wait(timeout=2)
+                st.session_state['game_proc'] = None
+                st.success("Game stopped.")
+            except Exception as e:
+                st.error(f"Could not stop game: {e}")
+    else:
+        st.write("No game process currently running.")
+
 
 
 # MANUAL SELECT
@@ -541,3 +603,4 @@ elif st.session_state.page == "result_history":
 else:
     st.write("Unknown page. Returning to welcome.")
     go_to("welcome")
+
