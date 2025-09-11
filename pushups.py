@@ -40,6 +40,18 @@ def run_pushups(user_weight, target_reps=10, video_path=0):
         image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         results = pose.process(image)
         image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
+        if st.session_state.workout_status == "exit":
+          break
+
+        if st.session_state.workout_status == "paused":
+            if not st.session_state.pause_message_shown:
+               st.warning("⏸ Workout Paused. Press Resume to continue.")
+               st.session_state.pause_message_shown = True
+            time.sleep(1)
+            continue
+        else:
+          # Reset when resumed
+          st.session_state.pause_message_shown = False
 
         if results.pose_landmarks:
             mp_drawing.draw_landmarks(image, results.pose_landmarks, mp_pose.POSE_CONNECTIONS)
