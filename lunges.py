@@ -40,7 +40,18 @@ def run_lunges(user_weight, target_reps=10, video_path=0):
             image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
 
             h, w, _ = image.shape
+            if st.session_state.workout_status == "exit":
+              break
 
+            if st.session_state.workout_status == "paused":
+                if not st.session_state.pause_message_shown:
+                  st.warning("⏸ Workout Paused. Press Resume to continue.")
+                  st.session_state.pause_message_shown = True
+                time.sleep(1)
+                continue
+            else:
+              # Reset when resumed
+              st.session_state.pause_message_shown = False
             try:
                 landmarks = results.pose_landmarks.landmark
                 hip = [landmarks[mp_pose.PoseLandmark.RIGHT_HIP.value].x,
@@ -82,15 +93,13 @@ def run_lunges(user_weight, target_reps=10, video_path=0):
             calories_burned = MET * user_weight * elapsed_time_hr
 
             # UI overlay
-            cv2.rectangle(image, (0, 0), (350, 140), (0, 0, 0), -1)
+            cv2.rectangle(image, (0, 0), (360, 130), (0, 0, 0), -1)
             cv2.putText(image, f'Reps: {counter}', (10, 35),
                         cv2.FONT_HERSHEY_SIMPLEX, 1.2, (255, 255, 255), 2)
-            cv2.putText(image, f'Form: {form}', (10, 75),
-                        cv2.FONT_HERSHEY_SIMPLEX, 1.1, color, 2)
-            cv2.putText(image, f'Time: {int(elapsed_time_sec)}s', (10, 110),
-                        cv2.FONT_HERSHEY_SIMPLEX, 1, (200, 255, 200), 2)
-            cv2.putText(image, f'Calories: {calories_burned:.2f}', (10, 140),
-                        cv2.FONT_HERSHEY_SIMPLEX, 1, (100, 255, 255), 2)
+            # cv2.putText(image, f'Time: {int(elapsed_time_sec)}s', (10, 110),
+                        # cv2.FONT_HERSHEY_SIMPLEX, 1, (200, 255, 200), 2)
+            # cv2.putText(image, f'Calories: {calories_burned:.2f}', (10, 140),
+                        # cv2.FONT_HERSHEY_SIMPLEX, 1, (100, 255, 255), 2)
 
             if results.pose_landmarks:
                 mp_drawing.draw_landmarks(image, results.pose_landmarks, mp_pose.POSE_CONNECTIONS)
