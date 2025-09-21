@@ -17,6 +17,11 @@ from plank import run_plank
 from yoga_pose_classifier import run_yoga_pose
 from ninjastar import run_orbit_game
 
+if "workout_status" not in st.session_state:
+    st.session_state.workout_status = "running"  # can be "running", "paused", "exit"
+if "pause_message_shown" not in st.session_state:
+    st.session_state.pause_message_shown = False
+    
 # -------------------- SCHEDULE DATA --------------------
 SCHEDULES = {
     "Beginner": {
@@ -399,9 +404,18 @@ elif st.session_state.page == "scheduled_announce":
 # WORKOUT RUN (manual)
 elif st.session_state.page == "workout":
     st.title(f"🏃 Starting (Manual) {st.session_state.exercise}!")
-    st.warning("Workout will run (may open a camera window). Please wait...")
-
+    col1, col2, col3 = st.columns(3)
+    with col1:
+      if st.button("⏸ Pause"):
+        st.session_state.workout_status = "paused"
+    with col2:
+      if st.button("▶️ Resume"):
+        st.session_state.workout_status = "running"
+    with col3:
+      if st.button("❌ Exit"):
+        st.session_state.workout_status = "exit"
     result = None
+    error_message=None
     try:
         ex = st.session_state.exercise
         if ex == "Lunges":
@@ -418,10 +432,16 @@ elif st.session_state.page == "workout":
             result = run_plank(user_weight=st.session_state.weight, video_path=st.session_state.video_path, target_seconds=st.session_state.hold_time)
         elif ex == "Yoga":
             result = run_yoga_pose(user_weight=st.session_state.weight, video_path=st.session_state.video_path, target_time=st.session_state.hold_time, pose_name=st.session_state.yoga_pose)
+    except ImportError as e:
+        error_message = f"Import error - check if yoga_pose_classifier.py exists: {e}"
+        st.error(error_message) 
     except Exception as e:
         st.error(f"Error running workout: {e}")
         result = {"status": "Failed", "error": str(e)}
-
+    if error_message:
+        result = {"status": "Failed", "error": error_message}
+    elif result is None:
+        result = {"status": "Failed", "error": "Function returned None"}
     result = result or {"status": "Failed"}
     result_meta = {
         "exercise": st.session_state.exercise,
@@ -437,7 +457,27 @@ elif st.session_state.page == "workout":
 # WORKOUT RUN FOR SCHEDULED ITEM
 elif st.session_state.page == "workout_scheduled_run":
     st.title(f"🏃 Starting (Scheduled) {st.session_state.current_exercise_for_run}!")
-    st.warning("Workout will run (may open a camera window). Please wait...")
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        if st.button("⏸ Pause"):
+            st.session_state.workout_status = "paused"
+            st.session_state.pause_message_shown = False
+    with col2:
+        if st.button("▶️ Resume"):
+            st.session_state.workout_status = "running"
+            st.session_state.pause_message_shown = False
+    with col3:
+        if st.button("❌ Exit"):
+            st.session_state.workout_status = "exit"
+
+    # Show pause/exit messages
+    if st.session_state.workout_status == "paused" and not st.session_state.pause_message_shown:
+        st.warning("⏸ Workout Paused. Press Resume to continue.")
+        st.session_state.pause_message_shown = True
+
+    if st.session_state.workout_status == "exit":
+        st.info("❌ Workout exited.")
+        go_to("schedule_select") 
 
     result = None
     try:
