@@ -82,8 +82,8 @@ Screenshots of the project<br>
 4. Submit a pull request via [Git etiquettes](https://gist.github.com/mikepea/863f63d6e37281e329f8) 
 
 ## Improvements
-Add calorie tracking visualizations and user progress analytics.
-Expand to support more exercises like side leg raises, squats, and jumping jacks.
-Include a leaderboard and daily fitness challenges.
-Build a mobile companion app for tracking on the go.
-Deploy as a web application for easy browser-based access.
+1. Add calorie tracking visualizations and user progress analytics.
+2. Expand to support more exercises like side leg raises, squats, and jumping jacks.
+3. Include a leaderboard and daily fitness challenges.
+4. Build a mobile companion app for tracking on the go.
+5. Deploy as a web application for easy browser-based access.
