@@ -1,7 +1,7 @@
 # GetUpGo
-<div style="display: flex; align-items: center;">
+<!-- <div style="display: flex; align-items: center;">
   <img src="https://github.com/your-repo/GetUpGo/preview/icon.png" alt="icon" style="height:100px;width:100px;">
-</div>
+</div> -->
 
 ## Table of Contents
 - [Introduction](#introduction) <br>
