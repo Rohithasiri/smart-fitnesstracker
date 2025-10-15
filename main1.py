@@ -6,7 +6,6 @@ import sys
 import os
 import platform
 
-
 # Import your existing workout modules (make sure these imports match your project)
 from lunges import run_lunges
 from pushups import run_pushups

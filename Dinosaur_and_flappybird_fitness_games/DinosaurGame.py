@@ -1,4 +1,4 @@
-from numpy.lib.function_base import angle
+from numpy import angle
 import time
 import numpy as np
 import cv2
@@ -344,7 +344,7 @@ def play_dinosaur_game():
         clock.tick(120)
 
 
-        cv2.imshow("Image", img)
+        # cv2.imshow("Image", img)
         # key = cv2.waitKey(1)
         # if key == ord("q"):
         #     break

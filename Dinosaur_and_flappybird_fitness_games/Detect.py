@@ -15,7 +15,12 @@ class Detect():
         self.mpDraw = mp.solutions.drawing_utils
         self.mpPose = mp.solutions.pose
         self.pose = self.mpPose.Pose(
-            self.mode, self.upBody, self.smooth, self.detectionCon, self.trackCon)
+        static_image_mode=self.mode,
+        upper_body_only=self.upBody,  # deprecated in latest versions
+        smooth_landmarks=self.smooth,
+        min_detection_confidence=0.5,
+        min_tracking_confidence=0.5
+         )
 
     def findPose(self, img, draw=True):
 

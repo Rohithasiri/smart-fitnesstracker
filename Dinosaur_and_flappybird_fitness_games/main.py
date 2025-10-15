@@ -3,10 +3,10 @@ import sys
 import random
 import pygame as pg
 
-from button import Button
+from assets.button import Button
 
-from DinosaurGame import play_dinosaur_game
-from FlappyBird import play_flappy_bird
+from Dinosaur_and_flappybird_fitness_games.DinosaurGame import play_dinosaur_game
+from Dinosaur_and_flappybird_fitness_games.FlappyBird import play_flappy_bird
 
 
 os.environ["SDL_VIDEO_CENTERED"] = '1'

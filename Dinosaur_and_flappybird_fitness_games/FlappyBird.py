@@ -5,7 +5,7 @@ import cv2
 import numpy as np
 import time
 
-from numpy.lib.function_base import angle
+from numpy import angle
 import PoseModule as pm
 
 wCam, hCam = 1280, 720
@@ -247,4 +247,8 @@ def play_flappy_bird():
         pygame.display.update()
         clock.tick(120)
         
-        
+from FlappyBird import run_flappy  # assuming your FlappyBird.py has a run_flappy() function
+
+if __name__ == "__main__":
+    play_flappy_bird()
+       
